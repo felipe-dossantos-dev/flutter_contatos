@@ -29,7 +29,7 @@ class ContactHelper {
     final databasePath = await getDatabasesPath();
     final path = join(databasePath, "contacts.db");
 
-    await openDatabase(
+    return await openDatabase(
       path,
       version: 1,
       onCreate: (db, version) async {
@@ -56,9 +56,39 @@ class ContactHelper {
         where: "$idColumn = ?",
         whereArgs: [id]);
     if (maps.length > 0) {
-      return Contact.fromMap(maps[0]);
+      return Contact.fromMap(maps.first);
     }
     return null;
+  }
+
+  Future<int> deleteContact(int id) async {
+    Database contactDatabase = await db;
+    return await contactDatabase.delete(contactTable, where: "$idColumn = ?", whereArgs: [id]);
+  }
+
+  Future<int> updateContact(Contact c) async {
+    Database contactDatabase = await db;
+    return await contactDatabase.update(contactTable, c.toMap(), where: "$idColumn = ?", whereArgs: [c.id]);
+  }
+
+  Future<List<Contact>> getAllContacts() async {
+    Database contactDatabase = await db;
+    List<Map> listMap = await contactDatabase.rawQuery("SELECT * FROM $contactTable");
+    List<Contact> listContact = List();
+    for(Map m in listMap) {
+      listContact.add(Contact.fromMap(m));
+    }
+    return listContact;
+  }
+
+  Future<int> getNumber() async {
+    Database contactDatabase = await db;
+    return Sqflite.firstIntValue(await contactDatabase.rawQuery("SELECT count(*) from $contactTable"));
+  }
+
+  Future<void> close() async {
+    Database contactDatabase = await db;
+    return await contactDatabase.close();
   }
 }
 
@@ -68,6 +98,8 @@ class Contact {
   String email;
   String phone;
   String image;
+
+  Contact();
 
   Contact.fromMap(Map map) {
     id = map[idColumn];
